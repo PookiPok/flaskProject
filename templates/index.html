@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Video Recording</title>
+  </head>
+  <body>
+    <h1>Video Recording</h1>
+    <div>
+      <video id="video" width="640" height="480" autoplay></video>
+    </div>
+    <div>
+      <button id="start_stop">Start Recording</button>
+{#      <button id="save" disabled>Save Video</button>#}
+    </div>
+    <script>
+      var video = document.getElementById('video');
+      var start_stop = document.getElementById('start_stop');
+      {#var save = document.getElementById('save');#}
+      var recording = false;
+      var chunks = [];
+
+      start_stop.onclick = function() {
+        if (recording) {
+          start_stop.style.background='#00FF00';
+          mediaRecorder.stop();
+          video.srcObject = null;
+          recording = false;
+          start_stop.innerHTML = 'Start Recording';
+          {#save.disabled = false;#}
+        } else {
+          navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+            .then(function(stream) {
+              video.srcObject = stream;
+              mediaRecorder = new MediaRecorder(stream);
+              mediaRecorder.start();
+              recording = true;
+              start_stop.innerHTML = 'Stop Recording';
+              start_stop.style.background='#FF0000';
+              {#save.disabled = true;#}
+              chunks = [];
+              mediaRecorder.ondataavailable = function(e) {
+                chunks.push(e.data);
+              };
+              mediaRecorder.onstop = function(e) {
+                var blob = new Blob(chunks, { 'type' : 'video/mp4' });
+                var formData = new FormData();
+                console.log(blob);
+                formData.append('video', blob, 'video.mp4');
+                fetch('/save_video', {
+                  method: 'POST',
+                  body: formData
+                })
+                .then(function(response) {
+                  console.log(response.text());
+                });
+              };
+            });
+        }
+      };
+    </script>
+  </body>
+</html>
